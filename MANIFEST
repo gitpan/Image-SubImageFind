@@ -1,0 +1,9 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/test.t
+SubImageFind.pm
+SubImageFind.xs
+subimg.c
+subimg.h
