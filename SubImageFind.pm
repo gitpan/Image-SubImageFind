@@ -40,7 +40,7 @@ our @EXPORT = qw(
 
 our %EXPORT_TAGS = ( 'all' => \@EXPORT_OK );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 Exporter::export_ok_tags(keys %EXPORT_TAGS);
 bootstrap Image::SubImageFind $VERSION;

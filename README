@@ -1,4 +1,4 @@
-Image-SubImageFind version 0.01
+Image-SubImageFind version 0.02
 ===============================
 
 A module for locating a sub-image file within a larger image file.
@@ -23,7 +23,9 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   ImageMagick (MagickCore)
-  fftw3 
+  ImageMagick-devel
+  fftw3
+  fftw3-devel 
 
 COPYRIGHT AND LICENCE
 
