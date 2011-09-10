@@ -1,4 +1,4 @@
-Image-SubImageFind version 0.02
+Image-SubImageFind version 0.03
 ===============================
 
 A module for locating a sub-image file within a larger image file.
@@ -8,6 +8,7 @@ Leveraging Dr. Werner Van Belle's work from the following paper:
    based Subimage Localization Requires Image Normalization to work 
    properly (http://werner.yellowcouch.org/Papers/subimg/index.html)
 
+In addition, there are additional comparison mechanisms available.
 
 INSTALLATION
 
@@ -22,14 +23,15 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  ImageMagick (MagickCore)
+  ImageMagick (MagickCore, Magick++)
   ImageMagick-devel
+  ImageMagick-c++-devel
   fftw3
   fftw3-devel 
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2010 by Dennis K. Paulsen
+Copyright (C) 2010-2011 by Dennis K. Paulsen
 
 Other portions are copyright their respective owners.
 

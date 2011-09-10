@@ -1,8 +1,8 @@
-/* Image::SubImageFind ($Id$) 
- * Modified by Dennis K. Paulsen
- *  
+/* Image::SubImageFind ($Id$)
+ * Minor modifications by Dennis K. Paulsen
+ *
  * Relies heavy on the algorithms and original code provided by
- * Dr. Werner Van Belle, as documented here: 
+ * Dr. Werner Van Belle, as documented here:
  *     http://werner.yellowcouch.org/Papers/subimg/
  *     [A subimage finder (c) Werner Van Belle - 2007]
  *
@@ -13,9 +13,8 @@
 #include <assert.h>
 #include <math.h>
 #include <fftw3.h>
-#include <magick/MagickCore.h>
-#include "subimg.h"
-
+#include <Magick++.h>
+#include "DWVB.h"
 
 /**
  * This function finds a subimage in a larger image. It expects two arguments.
@@ -39,13 +38,9 @@
  *   [-1:1]; November 2006
  *
  */
-BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
-{
-    if (!IsMagickInstantiated()) // Do once..
-    {
-        MagickCoreGenesis (NULL, MagickTrue);
-    }
 
+bool DWVB::getCoordinates(size_t &x, size_t &y)
+{
     /**
      * The larger image will be called A. The smaller image will be called B.
      *
@@ -58,25 +53,26 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
      * in advance
      *
      */
-    int Asx, Asy;
-    int Bsx, Bsy;
-    signed2 *A = read_image(haystackfile, &Asx, &Asy);
-    signed2 *B = read_image(needlefile, &Bsx, &Bsy);
+    size_t Asx, Asy;
+    size_t Bsx, Bsy;
+    signed2 *A = ImageProcessor::readImageGrayscale(this->hayImage, Asx, Asy);
+    signed2 *B = ImageProcessor::readImageGrayscale(this->needleImage, Bsx, Bsy);
 	if ((Asx*Asy) < (Bsx*Bsy)) {
-		fprintf(stderr, "Haystack is smaller than needle!");
-		return FALSE;
+		fprintf(stderr, "Haystack is smaller than needle!\n");
+		return false;
 	}
+	//printf("%d x %d\n", (Asx*Asy), (Bsx*Bsy));
 
-    int Asx2 = Asx / 2 + 1;
+    size_t Asx2 = Asx / 2 + 1;
     unsigned1 *Asad = (unsigned1 *)malloc(sizeof(unsigned1) * Asx * Asy);
     unsigned1 *Bsad = (unsigned1 *)malloc(sizeof(unsigned1) * Bsx * Bsy);
-    int i = 0;
+    size_t i = 0;
     for (i = 0; i < Bsx * Bsy; i++)
     {
         Bsad[i] = B[i];
         Asad[i] = A[i];
     }
-    for (i = Bsx * Bsy; i < Asx * Asy; i++) 
+    for (i = Bsx * Bsy; i < Asx * Asy; i++)
 	{
         Asad[i] = A[i];
     }
@@ -87,8 +83,8 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
      * The window size (wx,wy) is half the size of the smaller subimage. This
      * is useful to have as much good information from the subimg.
      */
-    int wx = Bsx / 2;
-    int wy = Bsy / 2;
+    size_t wx = Bsx / 2;
+    size_t wy = Bsy / 2;
     normalize(B, Bsx, Bsy, wx, wy);
     normalize(A, Asx, Asy, wx, wy);
 
@@ -101,10 +97,10 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
     fftw_complex *Af = (fftw_complex *)fftw_malloc (sizeof(fftw_complex) * Asx2 * Asy);
     double *Ba = (double *)fftw_malloc(sizeof( double) * Asx * Asy);
     fftw_complex *Bf = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * Asx2 * Asy);
-    if (Af == NULL || Bf == NULL) 
+    if (Af == NULL || Bf == NULL)
     {
-		fprintf(stderr, "Unable to allocate memory for one or more plans!");
-		return FALSE;
+		fprintf(stderr, "Unable to allocate memory for one or more plans!\n");
+		return false;
     }
 
     /**
@@ -119,18 +115,18 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
     double *crosscorrs = Aa;
     fftw_plan backward = fftw_plan_dft_c2r_2d ( Asy, Asx, Bf, crosscorrs,
                          FFTW_BACKWARD | FFTW_ESTIMATE );
-    if (forwardA == NULL || forwardB == NULL || backward == NULL) 
+    if (forwardA == NULL || forwardB == NULL || backward == NULL)
 	{
-		fprintf(stderr, "Unable to create one or more plans!");
-		return FALSE;
+		fprintf(stderr, "Unable to create one or more plans!\n");
+		return false;
 	}
 
     /**
      * The two forward transforms of A and B. Before we do so we copy the normalized
      * data into the double array. For B we also pad the data with 0
      */
-    int row = 0;
-    int col = 0;
+    size_t row = 0;
+    size_t col = 0;
     for ( row = 0; row < Asy; row++ )
     {
         for ( col = 0; col < Asx; col++ )
@@ -139,8 +135,8 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
         }
     }
     fftw_execute(forwardA);
-   
-    int j = 0;
+
+    size_t j = 0;
     for (j = 0; j < Asx * Asy; j++)
         Ba[j] = 0;
     for (row = 0; row < Bsy; row++)
@@ -184,26 +180,26 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
 
     for (a = 0; a < sa; a++)
     {
-        int xl = a * Bsx;
-        int xr = xl + Bsx;
+    	size_t xl = a * Bsx;
+        size_t xr = xl + Bsx;
         if ( xr > Asx )
             continue;
         for (b = 0; b < sb; b++)
         {
-            int yl = b * Bsy;
-            int yr = yl + Bsy;
+        	size_t yl = b * Bsy;
+        	size_t yr = yl + Bsy;
             if ( yr > Asy )
                 continue;
 
             // find the maximum correlation in this cell
             int cormxat = xl + yl * Asx;
             double cormx = crosscorrs[cormxat];
-            int x = 0;
-            int y = 0;
-            for ( x = xl; x < xr; x++ )
-                for ( y = yl; y < yr; y++ )
+            size_t cx = 0;
+            size_t cy = 0;
+            for ( cx = xl; cx < xr; cx++ )
+                for ( cy = yl; cy < yr; cy++ )
                 {
-                    int j = x + y * Asx;
+                	size_t j = cx + cy * Asx;
                     if ( crosscorrs[j] > cormx )
                         cormx = crosscorrs[cormxat = j];
                 }
@@ -217,11 +213,11 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
                 continue;
 
             signed8 sad = 0;
-            for ( x = 0; sad < minsad && x < Bsx; x++ )
-                for ( y = 0; y < Bsy; y++ )
+            for (size_t sx = 0; sad < minsad && sx < Bsx; sx++ )
+                for (size_t sy = 0; sy < Bsy; sy++ )
                 {
-                    int j = ( x + corx ) + ( y + cory ) * Asx;
-                    int i = x + y * Bsx;
+                    int j = ( sx + corx ) + ( sy + cory ) * Asx;
+                    int i = sx + sy * Bsx;
                     sad += llabs ( ( int ) Bsad[i] - ( int ) Asad[j] );
                 }
 
@@ -230,17 +226,17 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
                 minsad = sad;
                 sadx = corx;
                 sady = cory;
-                // printf("* ");
+                //printf("* ");
             }
-            // printf("Grid (%d,%d) (%d,%d) Sip=%g Sad=%lld\n",a,b,corx,cory,cormx,sad);
+            //printf("Grid (%d,%d) (%d,%d) Sip=%g Sad=%lld\n",a,b,corx,cory,cormx,sad);
         }
     }
-    
+
     // Set coordinates..
     //printf("%d\t%d\n",sadx,sady);
-    *x = sadx;
-    *y = sady;
-    
+    x = sadx;
+    y = sady;
+
     /**
      * Aa, Ba, Af and Bf were allocated in this function
      * crosscorrs was an alias for Aa and does not require deletion.
@@ -253,10 +249,10 @@ BOOL get_coordinates (char *haystackfile, char *needlefile, int *x, int *y)
 	free(B);
 
 
-	return TRUE;
+	return true;
 }
 
-void normalize (signed2 * img, int sx, int sy, int wx, int wy)
+void DWVB::normalize(signed2 *img, int sx, int sy, int wx, int wy)
 {
     /**
       * Calculate the mean background. We will subtract this
@@ -275,7 +271,7 @@ void normalize (signed2 * img, int sx, int sy, int wx, int wy)
         sqr[j] = v * v;
     }
     signed2 *var = boxaverage ( sqr, sx, sy, wx, wy );
-    
+
     /**
      * The normalization process. Currenlty still
      * calculated as doubles. Could probably be fixed
@@ -293,7 +289,7 @@ void normalize (signed2 * img, int sx, int sy, int wx, int wy)
         if ( img[j] < -127 )
             img[j] = -127;
     }
-    
+
     /**
      * Mean was allocated in the boxaverage function
      * Sqr was allocated in this function
@@ -309,10 +305,11 @@ void normalize (signed2 * img, int sx, int sy, int wx, int wy)
      * to become 0
      */
     window ( img, sx, sy, wx, wy );
+
 }
 
 
-signed2 *boxaverage ( signed2 * input, int sx, int sy, int wx, int wy )
+signed2* DWVB::boxaverage(signed2 * input, int sx, int sy, int wx, int wy )
 {
     signed2 *horizontalmean = ( signed2 * ) malloc ( sizeof ( signed2 ) * sx * sy );
     assert ( horizontalmean );
@@ -422,7 +419,7 @@ signed2 *boxaverage ( signed2 * input, int sx, int sy, int wx, int wy )
     return verticalmean;
 }
 
-void window ( signed2 * img, int sx, int sy, int wx, int wy )
+void DWVB::window(signed2 * img, int sx, int sy, int wx, int wy )
 {
     int wx2 = wx / 2;
     int sxsy = sx * sy;
@@ -457,49 +454,4 @@ void window ( signed2 * img, int sx, int sy, int wx, int wy )
         syt += sx;
         syb -= sx;
     }
-}
-
-signed2 *read_image ( char *filename, int *sx, int *sy )
-{
-    ExceptionInfo *exception;
-    Image *image;
-    ImageInfo *image_info;
-
-    exception = AcquireExceptionInfo ();
-    image_info = CloneImageInfo ( ( ImageInfo * ) NULL );
-    strcpy ( image_info->filename, filename );
-
-    image = ReadImage ( image_info, exception );
-    if ( exception->severity != UndefinedException )
-        CatchException ( exception );
-    if ( image == ( Image * ) NULL )
-    {
-        return NULL;
-    }
-
-    *sx = image->columns;
-    *sy = image->rows;
-    assert ( *sx > 4 && *sy > 4 );
-
-    signed2 *img = ( signed2 * ) malloc ( sizeof ( signed2 ) * ( *sx ) * ( *sy ) );
-
-    MagickPixelPacket pixel;
-    int x = 0;
-    int y = 0;
-    for ( x = 0; x < *sx; x++ )
-    {
-        for ( y = 0; y < *sy; y++ )
-        {
-            GetOneVirtualMagickPixel ( image, x, y, &pixel, exception );
-            if ( exception->severity != UndefinedException )
-            {
-                CatchException ( exception );
-            }
-
-            img[x + y * ( *sx ) ] =
-                ( signed2 ) ( pixel.red * 11 + pixel.green * 16 +
-                              pixel.blue * 5 ) / 32;
-        }
-    }
-    return img;
 }
